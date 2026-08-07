@@ -90,7 +90,8 @@ export async function instant<T>(
     // A completed prior scope for this application URL can leave the cookie
     // behind (its client-side release races an in-flight captured-cookie write
     // from a locked MPA page load; see the note above). Clear matching stale
-    // entries before acquiring without touching other origins in the context.
+    // entries before acquiring without touching same-named entries that do not
+    // apply to this URL.
     await releaseInstantCookie(context, scopeURL)
 
     // Acquire the lock by setting the cookie via the browser context. This
