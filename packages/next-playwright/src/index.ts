@@ -29,13 +29,11 @@ interface PlaywrightPage {
 
 const INSTANT_COOKIE = 'next-instant-navigation-testing'
 
-// Browser contexts that currently have an instant() scope executing. The
-// instant cookie is scoped to the browser context, so the context is the
-// natural granularity for the scope: two concurrent instant() calls on the same
-// context share one cookie and genuinely conflict, whereas calls on different
-// contexts (or different browsers) are independent and must not. Keying on the
-// context object preserves that isolation while giving a race-free nesting
-// signal.
+// Browser contexts that currently have an instant() scope executing. Active
+// scopes are intentionally tracked at browser-context granularity: concurrent
+// calls in the same context conflict, while calls in separate contexts (or
+// browsers) are independent. Keying on the context object preserves that
+// isolation while giving a race-free nesting signal.
 //
 // We track this in-process rather than inferring nesting from the cookie's
 // presence: a locked page asynchronously re-writes the instant cookie on every
