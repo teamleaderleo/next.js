@@ -91,11 +91,8 @@ export async function instant<T>(
   try {
     // A completed prior scope for this application URL can leave the cookie
     // behind (its client-side release races an in-flight captured-cookie write
-    // from a locked MPA page load; see the note above). No scope is active for
-    // this context, so a matching cookie is stale here — clear it before
-    // acquiring so a completed prior scope never blocks this one. Cookies for
-    // unrelated origins in the same browser context belong to those origins
-    // and must be left alone.
+    // from a locked MPA page load; see the note above). Clear matching stale
+    // entries before acquiring without touching other origins in the context.
     await releaseInstantCookie(context, scopeURL)
 
     // Acquire the lock by setting the cookie via the browser context. This
@@ -125,8 +122,8 @@ export async function instant<T>(
 }
 
 /**
- * Deletes the instant cookie that applies to the current application URL,
- * leaving unrelated origins and every other cookie untouched.
+ * Deletes instant cookie entries that apply to the current application URL,
+ * leaving unrelated cookies untouched.
  *
  * We must NOT use `context.clearCookies({ name: INSTANT_COOKIE })` here.
  * Playwright implements a filtered `clearCookies` by clearing the ENTIRE cookie
@@ -136,11 +133,9 @@ export async function instant<T>(
  * races the empty window it observes none of the app's cookies (e.g. a
  * navigated page renders as if no cookies were set).
  *
- * Instead we ask Playwright only for cookies applicable to this application's
- * URL, select the instant cookie entries from that set, and re-add each with a
- * past expiry. Next.js may have updated the value, e.g. from [0] to [1,null],
- * but preserves the domain and path, so this deletes the owned entries without
- * disturbing other origins or unrelated cookie names.
+ * Instead we read the instant cookie's stored entries that apply to the
+ * application URL and re-add each with a past expiry. Next.js may have updated
+ * the value, e.g. from [0] to [1,null], but preserves the domain and path.
  *
  * A locked MPA page load can asynchronously re-write (resurrect) the cookie
  * just after we delete it: the client only stops writing once it observes the
