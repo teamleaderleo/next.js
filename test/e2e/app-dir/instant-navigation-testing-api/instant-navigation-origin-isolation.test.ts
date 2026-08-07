@@ -3,6 +3,7 @@ import { instant } from '@next/playwright'
 import type * as Playwright from 'playwright'
 import { join } from 'node:path'
 
+// Fieldwork characterization for cross-origin cookie ownership.
 async function openPage(next: ReturnType<typeof nextTestSetup>['next']) {
   let page: Playwright.Page
   await next.browser('/', {
