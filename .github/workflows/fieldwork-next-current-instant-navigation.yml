@@ -1,4 +1,5 @@
 # Fieldwork trigger branch for one exact-current execution.
+# Retrigger after workflow registration on the fork default branch.
 name: Fieldwork current Next.js instant navigation characterization
 
 on:
