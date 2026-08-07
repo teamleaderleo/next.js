@@ -1,7 +1,13 @@
+# Fieldwork trigger branch for one exact-current execution.
 name: Fieldwork current Next.js instant navigation characterization
 
 on:
   push:
+    branches:
+      - canary
+    paths:
+      - .github/workflows/fieldwork-next-current-instant-navigation.yml
+  pull_request:
     branches:
       - canary
     paths:
@@ -11,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: fieldwork-next-current-instant-navigation
+  group: fieldwork-next-current-instant-navigation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
