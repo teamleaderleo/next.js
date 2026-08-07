@@ -1,0 +1,44 @@
+name: Fieldwork instant navigation origin isolation
+
+on:
+  push:
+    branches:
+      - fieldwork/instant-navigation-origin-isolation-exec
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldwork-instant-navigation-origin-isolation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out characterization head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js
+        run: pnpm build
+
+      - name: Run focused production characterization
+        run: pnpm test-start test/e2e/app-dir/instant-navigation-testing-api/instant-navigation-origin-isolation.test.ts
