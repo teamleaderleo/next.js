@@ -1,0 +1,76 @@
+name: Fieldwork materialize instant origin regression
+
+on:
+  pull_request:
+    branches:
+      - fieldwork/instant-navigation-origin-scoped-release-current
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.head_ref == 'fieldwork/instant-navigation-origin-scoped-test-materializer'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fieldwork/instant-navigation-origin-scoped-release-current
+          fetch-depth: 0
+
+      - name: Insert regression in existing Instant Navigation suite
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('test/e2e/app-dir/instant-navigation-testing-api/instant-navigation-testing-api.test.ts')
+          text = path.read_text()
+          marker = "  it('allows concurrent instant scopes across separate browser contexts', async () => {"
+          test_name = "preserves an instant cookie that only applies to another origin"
+
+          if test_name in text:
+              raise SystemExit('regression already present')
+          if text.count(marker) != 1:
+              raise SystemExit(f'expected exactly one insertion marker, found {text.count(marker)}')
+
+          insertion = r'''  it('preserves an instant cookie that only applies to another origin', async () => {
+            const page = await openPage(next, '/')
+            const context = page.context()
+            const otherDomain = 'app-b.example'
+            const otherValue = JSON.stringify([1, 'other-origin', null])
+
+            await context.addCookies([
+              {
+                name: 'next-instant-navigation-testing',
+                value: otherValue,
+                domain: otherDomain,
+                path: '/',
+              },
+            ])
+
+            const getOtherOriginCookie = async () =>
+              (await context.cookies()).find(
+                (cookie) =>
+                  cookie.name === 'next-instant-navigation-testing' &&
+                  cookie.domain === otherDomain &&
+                  cookie.path === '/'
+              )
+
+            await instant(page, async () => {
+              expect((await getOtherOriginCookie())?.value).toBe(otherValue)
+            })
+
+            expect((await getOtherOriginCookie())?.value).toBe(otherValue)
+          })
+
+'''
+
+          path.write_text(text.replace(marker, insertion + marker, 1))
+
+      - name: Commit regression to candidate branch
+        run: |
+          git config user.name "fieldwork-bot"
+          git config user.email "fieldwork-bot@users.noreply.github.com"
+          git add test/e2e/app-dir/instant-navigation-testing-api/instant-navigation-testing-api.test.ts
+          git commit -m "test(next-playwright): preserve other-origin instant cookie"
+          git push origin HEAD:fieldwork/instant-navigation-origin-scoped-release-current
